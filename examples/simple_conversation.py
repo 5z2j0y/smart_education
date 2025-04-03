@@ -16,13 +16,30 @@ from src.workflow.engine import Workflow
 from src.workflow.nodes.start_node import StartNode
 from src.workflow.nodes.llm_node import LLMNode
 from src.workflow.nodes.end_node import EndNode
-from src.llm.fake_client import FakeLLMClient
+from src.llm.deepseek_client import DeepSeekClient  # 替换为DeepSeekClient
 
 def run_example_workflow():
     """运行示例工作流的函数"""
     
-    # 1. 创建 Fake LLM Client 实例
-    fake_llm = FakeLLMClient()
+    # 1. 获取 DEEPSEEK API密钥
+    # 安全起见，从环境变量获取API密钥，而不是硬编码
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        print("错误: DEEPSEEK_API_KEY 环境变量未设置")
+        print("请设置环境变量后再运行，例如：")
+        print("export DEEPSEEK_API_KEY='your-api-key-here'  # Linux/Mac")
+        print("或")
+        print("set DEEPSEEK_API_KEY=your-api-key-here  # Windows")
+        return None
+    
+    # 创建 DeepSeek Client 实例
+    deepseek_client = DeepSeekClient(api_key=api_key, model="deepseek-chat")
+    print(f"已创建DeepSeek客户端，使用模型: {deepseek_client.model}")
+
+    # 定义流式输出的回调函数
+    def stream_callback(text_chunk):
+        """处理流式输出的文本片段"""
+        print(text_chunk, end="", flush=True)
 
     # 2. 定义节点
     # 开始节点 - 接收用户查询
@@ -36,18 +53,20 @@ def run_example_workflow():
     llm_node_1 = LLMNode(
         node_id="llm1", 
         node_name="Better Query Generator",
-        system_prompt_template="you need to better user's query. output with bettered user query without other words. here's your input: {user_query}",
+        system_prompt_template="你需要改进用户的查询，使其更清晰、更有深度。只输出改进后的查询，不要有其他文字。用户查询是: {user_query}",
         output_variable_name="better_query",
-        llm_client=fake_llm
+        llm_client=deepseek_client,  # 使用DeepSeekClient
+        stream=True,  # 启用流式输出
+        stream_callback=stream_callback  # 自定义处理流式输出的回调
     )
     
     # 第二个LLM节点 - 回答优化后的查询
     llm_node_2 = LLMNode(
         node_id="llm2", 
         node_name="Query Answerer",
-        system_prompt_template="you need to answer the query in detail. here's your input: {better_query}",
+        system_prompt_template="请详细回答以下问题，提供丰富的内容和深入的解释: {better_query}",
         output_variable_name="llm_answer",
-        llm_client=fake_llm
+        llm_client=deepseek_client  # 使用DeepSeekClient
     )
     
     # 结束节点 - 提取最终答案
@@ -61,27 +80,25 @@ def run_example_workflow():
     workflow = Workflow(nodes=[start_node, llm_node_1, llm_node_2, end_node])
 
     # 4. 定义初始输入
-    initial_input = {"user_query": "what is the youth?"}
+    initial_input = {"user_query": "什么是青春?"}
 
     # 5. 运行工作流
-    print("\n开始执行示例工作流...")
-    final_context = workflow.run(initial_input)
-
-    # 6. 检查结果
-    print("\n=== 最终工作流上下文 ===")
-    print(final_context)
-    
-    # 进行断言检查，确保工作流正确执行
-    assert "user_query" in final_context, "缺少初始用户查询"
-    assert "better_query" in final_context, "缺少优化后的查询"
-    assert "llm_answer" in final_context, "缺少LLM回答"
-    
-    # 基于Fake LLM的预期响应进行检查
-    assert final_context["better_query"] == "A detailed exploration of the concept of youth.", "优化后的查询不符合预期"
-    assert final_context["llm_answer"] == "Youth is often defined as the period between childhood and adult age...", "LLM回答不符合预期"
-    
-    print("\n示例工作流执行成功！所有检查均已通过。")
-    return final_context
+    print("\n开始执行OpenAI工作流...")
+    try:
+        final_context = workflow.run(initial_input)
+        
+        # 6. 显示结果
+        print("\n=== 工作流执行结果摘要 ===")
+        print(f"原始查询: {final_context.get('user_query')}")
+        print(f"优化查询: {final_context.get('better_query')}")
+        print("\n最终回答:")
+        print(f"{final_context.get('llm_answer')}")  
+        
+        print("\nOpenAI工作流执行成功！")
+        return final_context
+    except Exception as e:
+        print(f"\n工作流执行失败: {e}")
+        return None
 
 if __name__ == "__main__":
     run_example_workflow()

@@ -1,6 +1,6 @@
-from typing import List, Any
-from string import Template  # 使用Python标准库的Template进行变量替换
+from typing import List, Any, Optional, Iterator, Callable
 from ..base import BaseNode, WorkflowContext
+import re
 
 class LLMNode(BaseNode):
     """
@@ -10,7 +10,9 @@ class LLMNode(BaseNode):
     def __init__(self, node_id: str, node_name: str,
                  system_prompt_template: str,
                  output_variable_name: str,
-                 llm_client: Any): # 实际应为 BaseLLMClient 类型
+                 llm_client: Any,
+                 stream: bool = False,
+                 stream_callback: Optional[Callable[[str], None]] = None): 
         """
         初始化LLM节点。
         
@@ -20,11 +22,15 @@ class LLMNode(BaseNode):
             system_prompt_template (str): 包含占位符（如 {variable_name}）的系统提示词模板。
             output_variable_name (str): LLM响应将存储在上下文中的变量名称。
             llm_client (Any): 用于调用LLM的客户端实例。
+            stream (bool): 是否使用流式输出，默认为False。
+            stream_callback (Optional[Callable[[str], None]]): 流式输出的回调函数，接收每个文本片段。
         """
         super().__init__(node_id, node_name)
         self.system_prompt_template = system_prompt_template
         self.output_variable_name = output_variable_name
         self.llm_client = llm_client
+        self.stream = stream
+        self.stream_callback = stream_callback
         
         # 从模板中提取变量名
         self.input_variable_names = self._extract_variables_from_template(system_prompt_template)
@@ -32,7 +38,6 @@ class LLMNode(BaseNode):
     def _extract_variables_from_template(self, template: str) -> List[str]:
         """从模板字符串中提取变量名"""
         # 简单方法：使用正则表达式直接查找{name}格式
-        import re
         # 查找形如{variable_name}的模式
         matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', template)
         # 返回唯一变量名列表
@@ -77,12 +82,29 @@ class LLMNode(BaseNode):
         formatted_prompt = self._format_prompt(context)
         print(f"  Formatted Prompt: {formatted_prompt}")
 
-        # 3. 调用LLM
+        # 3. 调用LLM（流式或非流式）
         try:
-            llm_response = self.llm_client.invoke(formatted_prompt)
-            print(f"  LLM Response: {llm_response}")
+            if self.stream and hasattr(self.llm_client, 'invoke_stream'):
+                # 流式调用
+                full_response = ""
+                print(f"  LLM Response (Streaming):", end="", flush=True)
+                
+                for text_chunk in self.llm_client.invoke_stream(formatted_prompt):
+                    full_response += text_chunk
+                    if self.stream_callback:
+                        self.stream_callback(text_chunk)
+                    else:
+                        # 简单地打印出来，不换行
+                        print(text_chunk, end="", flush=True)
+                
+                print()  # 完成后打印换行
+                llm_response = full_response
+            else:
+                # 常规调用
+                llm_response = self.llm_client.invoke(formatted_prompt)
+                print(f"  LLM Response: {llm_response}")
+                
         except Exception as e:
-            # 实际应用中应进行更细致的错误处理和重试逻辑
             print(f"  Error calling LLM: {e}")
             raise RuntimeError(f"LLMNode '{self.node_id}' failed during LLM invocation.") from e
 

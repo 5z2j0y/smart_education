@@ -19,13 +19,15 @@ from src.workflow.engine import Workflow
 from src.workflow.nodes.start_node import StartNode
 from src.workflow.nodes.llm_node import LLMNode
 from src.workflow.nodes.end_node import EndNode
-from src.llm.fake_client import FakeLLMClient
+from src.llm.deepseek_client import DeepSeekClient
 
 def run_multi_step_reasoning():
     """运行多步推理工作流示例"""
     
-    # 创建 Fake LLM Client 实例
-    fake_llm = FakeLLMClient()
+    # 创建 DeepSeek LLM Client 实例
+    # 请确保环境变量中设置了DEEPSEEK_API_KEY，或在此处直接提供
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "your_api_key_here")
+    deepseek_llm = DeepSeekClient(api_key=api_key, model="deepseek-chat")
 
     # 定义节点
     # 开始节点 - 接收数学问题
@@ -41,7 +43,7 @@ def run_multi_step_reasoning():
         node_name="Problem Analyzer",
         system_prompt_template="分析以下数学问题的类型和难度: {math_problem}",
         output_variable_name="problem_analysis",
-        llm_client=fake_llm
+        llm_client=deepseek_llm
     )
     
     # 解题步骤生成节点
@@ -50,7 +52,7 @@ def run_multi_step_reasoning():
         node_name="Solution Planner",
         system_prompt_template="根据分析，列出解决以下问题的步骤: {math_problem}\n分析: {problem_analysis}",
         output_variable_name="solution_steps",
-        llm_client=fake_llm
+        llm_client=deepseek_llm
     )
     
     # 执行解题节点
@@ -59,7 +61,7 @@ def run_multi_step_reasoning():
         node_name="Problem Solver",
         system_prompt_template="按照以下步骤解决数学问题: {math_problem}\n步骤: {solution_steps}",
         output_variable_name="solution",
-        llm_client=fake_llm
+        llm_client=deepseek_llm
     )
     
     # 答案检查节点
@@ -68,7 +70,7 @@ def run_multi_step_reasoning():
         node_name="Solution Verifier",
         system_prompt_template="检查以下解答是否正确: {solution}\n原问题: {math_problem}",
         output_variable_name="verification_result",
-        llm_client=fake_llm
+        llm_client=deepseek_llm
     )
     
     # 结束节点
