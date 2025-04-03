@@ -66,6 +66,7 @@ def run_example_workflow():
         node_name="Query Answerer",
         system_prompt_template="请详细回答以下问题，提供丰富的内容和深入的解释: {better_query}",
         output_variable_name="llm_answer",
+        stream=True,  # 启用流式输出
         llm_client=deepseek_client  # 使用DeepSeekClient
     )
     
