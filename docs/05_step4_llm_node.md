@@ -65,7 +65,6 @@ class OpenAIClient:
 
 ```python
 from typing import List, Dict, Any
-from string import Template  # 使用Python标准库的Template进行变量替换
 from base_node import BaseNode, WorkflowContext  # 假设我们已经在base_node.py中定义了这些
 
 class LLMNode(BaseNode):
@@ -82,7 +81,7 @@ class LLMNode(BaseNode):
         Args:
             node_id (str): 节点ID。
             node_name (str): 节点名称。
-            system_prompt_template (str): 包含占位符（如 ${variable_name}）的系统提示词模板。
+            system_prompt_template (str): 包含占位符（如 {variable_name}）的系统提示词模板。
             output_variable_name (str): LLM响应将存储在上下文中的变量名称。
             llm_client (Any): 用于调用LLM的客户端实例。
         """
@@ -90,36 +89,28 @@ class LLMNode(BaseNode):
         self.system_prompt_template = system_prompt_template
         self.output_variable_name = output_variable_name
         self.llm_client = llm_client # 实际应用中注入真实的LLM Client
-        # 使用Template分析变量名
-        self.template = Template(system_prompt_template)
         # 从模板中提取变量名
         self.input_variable_names = self._extract_variables_from_template(system_prompt_template)
 
     def _extract_variables_from_template(self, template: str) -> List[str]:
         """从模板字符串中提取变量名"""
-        # 使用Template.pattern属性提供的正则表达式提取变量名
-        # 由于Template使用的是${name}格式，我们需要先将{name}转换为${name}
-        template = Template(template.replace("{", "${"))
-        # 获取template中的所有变量名
-        identifiers = list(set([m[1] for m in Template.pattern.findall(template.template) 
-                               if m[1] and m[1].isidentifier()]))
-        return identifiers
+        # 使用正则表达式直接提取 {variable_name} 格式的变量
+        import re
+        # 提取所有 {name} 格式的变量名
+        variables = re.findall(r'\{(\w+)\}', template)
+        # 返回唯一变量名列表
+        return list(set(variables))
 
     def _format_prompt(self, context: WorkflowContext) -> str:
         """使用上下文中的变量值格式化提示词模板。"""
-        prompt_data = {}
+        # 验证所有必需的变量是否存在于上下文中
         for var_name in self.input_variable_names:
             if var_name not in context:
                 raise ValueError(f"LLMNode '{self.node_id}': Required variable '{var_name}' not found in context for prompt formatting.")
-            prompt_data[var_name] = context[var_name]
-
+        
+        # 使用 str.format_map 进行变量替换，自动处理 {name} 格式
         try:
-            # 使用标准库的Template进行变量替换
-            # 由于Template使用的是${name}格式，而我们的模板使用{name}格式
-            # 我们需要将模板中的{name}替换为${name}
-            template = Template(self.system_prompt_template.replace("{", "${"))
-            formatted_prompt = template.safe_substitute(prompt_data)
-            return formatted_prompt
+            return self.system_prompt_template.format(**context)
         except KeyError as e:
             raise ValueError(f"LLMNode '{self.node_id}': Error formatting prompt. Missing key: {e}") from e
 
