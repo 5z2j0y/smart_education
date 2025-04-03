@@ -13,11 +13,12 @@
 
 ```python
 # 导入所需组件
-from base_node import WorkflowContext
-from start_node import StartNode
-from llm_node import LLMNode, FakeLLMClient
-from end_node import EndNode
-from workflow import Workflow
+from src.workflow.base import WorkflowContext
+from src.workflow.engine import Workflow
+from src.workflow.nodes.start_node import StartNode
+from src.workflow.nodes.llm_node import LLMNode
+from src.workflow.nodes.end_node import EndNode
+from src.llm.fake_client import FakeLLMClient
 
 def run_example_workflow():
     """运行示例工作流的函数"""
