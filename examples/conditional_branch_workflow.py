@@ -1,6 +1,16 @@
 """
 条件分支工作流示例。
 演示如何使用ConditionalBranchNode实现基于内容的动态分支。
+
+----------------------------------------
+示例输出：（输入：叽里咕噜劈里啪啦嗷嗷嗷）
+----------------------------------------
+
+--- 处理结果 ---
+分类: Daily
+置信度: 0.5
+原因: The input consists of nonsensical or playful sounds, which are more likely to occur in casual daily conversation rather than in an educational context.
+回答: 哈哈，看来你正在用一组超有趣的拟声词放飞自我呀！🤣 如果是想表达开心、烦躁、或者单纯想玩 声音游戏——我都准备好啦！需要帮忙翻译成“人类语”，还是想一起创作一首噼里啪啦交响诗？🎵 （悄悄说 ：嗷嗷嗷特别适合用来模仿小恐龙哦~ 🦖）
 """
 import sys
 import os

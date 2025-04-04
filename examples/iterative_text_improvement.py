@@ -1,6 +1,26 @@
 """
 迭代文本改进示例。
 演示如何使用迭代工作流节点逐步改进文本质量，直到达到预期标准。
+
+----------------------------------------
+示例输出：（输入：地球为什么是圆的？因为地球是一个球，而不是一个方）
+----------------------------------------
+
+迭代次数: 2
+执行时间: 59.38秒
+
+原始文本:
+地球为什么是圆的？因为地球是一个球，而不是一个方
+
+改进历史:
+
+版本 1:
+地球为什么是圆的？这是因为在引力的作用下，物质均匀地向中心聚集，最终形成了球体结构。
+
+版本 2:
+地球之所以呈现为球形，是由于引力作用使物质均匀地向中心聚集，最终形成了这一平衡形态。
+
+迭代改进工作流演示执行完成！
 """
 import sys
 import os
@@ -24,7 +44,7 @@ from src.workflow.nodes.json_extractor_node import JSONExtractorNode
 # 初始化colorama
 init(autoreset=True)
 
-def run_iterative_improvement_workflow():
+def run_iterative_improvement_workflow(max_iterations=3):
     """运行迭代文本改进工作流示例"""
     
     # 初始化返回值
@@ -50,7 +70,7 @@ def run_iterative_improvement_workflow():
         print(text_chunk, end="", flush=True)
     
     # 定义迭代条件函数
-    def quality_check(context):
+    def quality_check(context, threshold=0.8):
         """根据文本质量评分决定是否继续迭代"""
         if "evaluation" not in context:
             return True  # 首次迭代，还没有评估结果
@@ -68,8 +88,8 @@ def run_iterative_improvement_workflow():
             # 打印当前质量分数
             print(f"\n{Fore.CYAN}当前质量分数: {quality_score:.2f}{Style.RESET_ALL}")
             
-            # 如果质量分数低于0.8，继续迭代
-            return quality_score < 0.8
+            # 如果质量分数低于阈值，继续迭代
+            return quality_score < threshold
         except Exception as e:
             print(f"评估结果解析错误: {e}")
             return False  # 出错时停止迭代
@@ -138,8 +158,8 @@ def run_iterative_improvement_workflow():
         node_id="text_improver",
         node_name="Iterative Text Improvement",
         nodes=[draft_start, improve_text, evaluate_text, extract_evaluation],
-        condition_function=quality_check,
-        max_iterations=3,
+        condition_function=lambda context: quality_check(context, threshold=0.8),
+        max_iterations=max_iterations,
         input_mapping={"initial_draft": "text_draft"},
         iteration_mapping={
         "improved_text": "text_draft",
@@ -239,7 +259,12 @@ def run_iterative_improvement_workflow():
             print("-"*40)
             print(f"{Fore.GREEN}迭代次数:{Style.RESET_ALL} {final_context['_iterations_completed']}")
             print(f"{Fore.GREEN}执行时间:{Style.RESET_ALL} {execution_time:.2f}秒")
-            
+
+            # 展示原始文本
+            if final_context and "initial_draft" in final_context:
+                print(f"\n{Fore.GREEN}原始文本:{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}{final_context['initial_draft']}{Style.RESET_ALL}")
+
             # 打印改进历史
             if "improvement_history" in final_context and final_context["improvement_history"]:
                 print(f"\n{Fore.GREEN}改进历史:{Style.RESET_ALL}")
@@ -253,6 +278,7 @@ def run_iterative_improvement_workflow():
             print(traceback.format_exc())
     
     print(f"\n{Fore.GREEN}迭代改进工作流演示执行完成！{Style.RESET_ALL}")
+    
     return final_context  # 现在即使出错也能返回 None
 
 if __name__ == "__main__":
