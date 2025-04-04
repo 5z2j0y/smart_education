@@ -12,7 +12,9 @@ class LLMNode(BaseNode):
                  output_variable_name: str,
                  llm_client: Any,
                  stream: bool = False,
-                 stream_callback: Optional[Callable[[str], None]] = None): 
+                 stream_callback: Optional[Callable[[str], None]] = None,
+                 next_node_id: Optional[str] = None,
+                 next_node_selector: Optional[Callable[[WorkflowContext], str]] = None): 
         """
         初始化LLM节点。
         
@@ -24,6 +26,9 @@ class LLMNode(BaseNode):
             llm_client (Any): 用于调用LLM的客户端实例。
             stream (bool): 是否使用流式输出，默认为False。
             stream_callback (Optional[Callable[[str], None]]): 流式输出的回调函数，接收每个文本片段。
+            next_node_id (Optional[str]): 直接指定下一个节点的ID，优先级低于next_node_selector。
+            next_node_selector (Optional[Callable[[WorkflowContext], str]]): 
+                基于上下文选择下一个节点ID的函数，优先级高于next_node_id。
         """
         super().__init__(node_id, node_name)
         self.system_prompt_template = system_prompt_template
@@ -31,6 +36,8 @@ class LLMNode(BaseNode):
         self.llm_client = llm_client
         self.stream = stream
         self.stream_callback = stream_callback
+        self.next_node_id = next_node_id
+        self.next_node_selector = next_node_selector
         
         # 从模板中提取变量名
         self.input_variable_names = self._extract_variables_from_template(system_prompt_template)

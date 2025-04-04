@@ -3,11 +3,14 @@ from .start_node import StartNode
 from .end_node import EndNode
 from .llm_node import LLMNode
 from .json_extractor_node import JSONExtractorNode
+from .conditional_branch_node import ConditionalBranchNode, ClassDefinition
 
 # 暴露给外部的类
 __all__ = [
     'StartNode',
     'EndNode',
     'LLMNode',
-    'JSONExtractorNode'
+    'JSONExtractorNode',
+    'ConditionalBranchNode',
+    'ClassDefinition'
 ]
