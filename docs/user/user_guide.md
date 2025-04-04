@@ -73,11 +73,12 @@ export OPENAI_API_KEY=your_api_key_here
 
 ### 3.2 节点 (Node)
 
-节点是工作流的基本构建块。每个节点接收上下文，执行特定操作，然后返回更新后的上下文。框架提供了三种基本节点类型：
+节点是工作流的基本构建块。每个节点接收上下文，执行特定操作，然后返回更新后的上下文。框架提供了几种基本节点类型：
 
 - **StartNode**: 工作流的入口点，验证初始输入。
 - **LLMNode**: 与语言模型交互的节点。
 - **EndNode**: 工作流的终点，提取最终结果。
+- **ConditionalBranchNode**: 条件分支节点，基于内容分类确定工作流执行路径。
 
 ### 3.3 工作流 (Workflow)
 
@@ -249,6 +250,76 @@ class MyCustomNode(BaseNode):
         return data.upper()  # 示例：转换为大写
 ```
 
+### 7.2 条件分支工作流
+
+框架支持基于内容的动态分支，您可以创建条件分支节点来实现更复杂的决策逻辑：
+
+```python
+from src.workflow.nodes.conditional_branch_node import ConditionalBranchNode, ClassDefinition
+
+# 定义分类类别
+classes = [
+    ClassDefinition(
+        name="Educational",  # 分类名称
+        description="教育相关的提问或陈述",  # 分类描述
+        next_node_id="educational_handler",  # 匹配此分类时下一个要执行的节点ID
+        examples=["什么是微积分?", "如何学好英语?"]  # 可选的示例列表
+    ),
+    ClassDefinition(
+        name="Daily",
+        description="日常生活对话",
+        next_node_id="daily_handler",
+        examples=["今天天气真好", "晚饭吃什么?"]
+    )
+]
+
+# 定义默认分类（兜底路由）
+default_class = ClassDefinition(
+    name="General",
+    description="无法明确分类的一般对话",
+    next_node_id="general_handler"
+)
+
+# 创建条件分支节点
+branch_node = ConditionalBranchNode(
+    node_id="classifier",
+    node_name="Query Classifier",
+    classes=classes,  # 分类列表
+    input_variable_name="user_query",  # 输入变量
+    llm_client=llm_client,  # 用于分类的LLM客户端
+    default_class=default_class,  # 默认分类（可选）
+    output_reason=True  # 是否输出分类原因（可选）
+)
+```
+
+#### 组装分支工作流
+
+条件分支工作流需要为每个分支定义处理节点，并将它们组装成一个完整的工作流：
+
+```python
+# 创建工作流，包含所有可能路径的节点
+workflow = Workflow([
+    start_node,
+    branch_node,
+    educational_node,  # 教育分类的处理节点
+    daily_node,        # 日常分类的处理节点
+    general_node,      # 默认分类的处理节点
+    educational_end,   # 教育分支的结束节点
+    daily_end,         # 日常分支的结束节点
+    general_end        # 默认分支的结束节点
+])
+
+# 执行工作流时，框架将根据分类结果自动选择分支
+final_context = workflow.run(initial_context)
+
+# 分类结果保存在上下文中
+classification = final_context["classification_result"]
+print(f"分类: {classification['class_name']}")
+print(f"置信度: {classification.get('confidence', 'N/A')}")
+```
+
+条件分支节点使用LLM对输入内容进行分类，然后根据分类结果将执行流程引导到对应的处理节点。这使您能够创建动态响应不同类型输入的智能工作流。
+
 ---
 
 ## 8. 常见问题
@@ -270,6 +341,10 @@ except Exception as e:
 ### Q: 框架是否支持并行执行节点？
 
 当前版本仅支持线性工作流（节点按顺序执行）。并行执行是计划中的未来扩展功能。
+
+### Q: 如何在一个工作流中实现多条执行路径？
+
+使用`ConditionalBranchNode`可以创建基于内容的动态分支。参考[条件分支工作流](#72-条件分支工作流)部分了解详细用法。
 
 ---
 

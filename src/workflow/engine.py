@@ -64,8 +64,15 @@ class Workflow:
                 next_node = None
                 next_node_id = None
                 
-                # 1. 首先检查节点是否有next_node_selector
-                if hasattr(current_node, 'next_node_selector') and current_node.next_node_selector:
+                # 0. 首先检查上下文中是否已经指定了下一个节点ID
+                if "next_node_id" in current_context:
+                    next_node_id = current_context["next_node_id"]
+                    # 从上下文中移除，避免影响后续节点
+                    del current_context["next_node_id"]
+                    print(f"  Branching: Using context-provided next node '{next_node_id}'")
+                
+                # 1. 如果上下文中没有指定，检查节点是否有next_node_selector
+                if not next_node_id and hasattr(current_node, 'next_node_selector') and current_node.next_node_selector:
                     selector_result = current_node.next_node_selector(current_context)
                     if selector_result:
                         next_node_id = selector_result

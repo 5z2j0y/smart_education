@@ -50,6 +50,12 @@
 - 使用模板系统处理提示词，支持上下文变量注入
 - 自动分析模板提取所需输入变量，减少手动配置
 
+### ConditionalBranchNode
+- 基于内容分类的条件分支节点
+- 使用LLM对输入内容进行智能分类
+- 支持示例驱动的分类定义，提高准确性
+- 内置默认分类机制，确保工作流鲁棒性
+
 ### EndNode
 - 工作流终止节点，验证最终输出变量
 - 提供明确的工作流结束标记
@@ -73,7 +79,7 @@
 
 ## 未来扩展方向
 
-- **非线性工作流**: 支持条件分支、并行执行、合并等高级流程控制
+- **更多流程控制**: 增加循环、并行执行、条件合并等高级流程控制
 - **错误处理机制**: 实现更健壮的错误处理与重试策略
 - **声明式定义**: 支持通过配置文件（YAML/JSON）声明工作流结构
 - **持久化支持**: 工作流状态持久化与恢复能力
@@ -84,23 +90,29 @@
 ## 项目结构
 
 ```
-workflow/
-│
-├── __init__.py
-├── nodes/
-│   ├── __init__.py
-│   ├── base.py          # BaseNode抽象类
-│   ├── start_node.py    # StartNode实现
-│   ├── llm_node.py      # LLMNode实现
-│   └── end_node.py      # EndNode实现
-│
-├── llm/
-│   ├── __init__.py
-│   ├── base.py          # LLM客户端接口
-│   ├── openai_client.py # OpenAI客户端实现
-│   └── fake_client.py   # 测试用的模拟客户端
-│
-└── workflow.py          # Workflow类实现
+smart_education/
+├── docs/                              # 文档目录
+│   ├── user/                          # 用户指南
+│   │   └── user_guide.md              # 用户使用手册
+│   ├── developer/                     # 开发者文档
+│   │   ├── 10_step9_condition_branch.md # 条件分支节点实现文档
+│   │   └── 99_future_extensions.md    # 未来扩展方向
+├── examples/                          # 示例代码
+│   └── simple_conversation.py         # 简单对话工作流示例
+├── src/                               # 源代码
+│   ├── workflow/                      # 工作流核心逻辑
+│   │   ├── base.py                    # 基础节点定义
+│   │   ├── engine.py                  # 工作流引擎
+│   │   ├── nodes/                     # 节点实现
+│   │   │   ├── start_node.py          # 起始节点
+│   │   │   ├── llm_node.py            # LLM节点
+│   │   │   ├── end_node.py            # 结束节点
+│   │   │   └── conditional_branch_node.py # 条件分支节点
+│   ├── llm/                           # LLM客户端
+│   │   ├── base_client.py             # LLM客户端基类
+│   │   └── deepseek_client.py         # DeepSeek LLM客户端实现
+├── README.md                          # 项目简介和设计文档
+└── requirements.txt                   # 项目依赖
 ```
 
 ## 贡献指南

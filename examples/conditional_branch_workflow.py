@@ -150,10 +150,8 @@ def run_conditional_branch_workflow():
 
     # 定义测试查询列表
     test_queries = [
-        "什么是二阶导数?",
-        "今天天气真好，适合出门散步",
-        "请推荐一些学习资料",
-        "..."  # 模糊查询，应该使用默认分类
+        "叽里咕噜劈里啪啦嗷嗷嗷",
+        "今天天气真好",
     ]
 
     for query in test_queries:
