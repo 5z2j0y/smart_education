@@ -1,6 +1,6 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 from .base import BaseNode, WorkflowContext
-from .nodes.start_node import StartNode  # 用于类型检查
+# from .nodes.start_node import StartNode  # 用于类型检查
 
 class Workflow:
     """
@@ -21,6 +21,7 @@ class Workflow:
         if not nodes:
             raise ValueError("Workflow must contain at least one node.")
         
+        from .nodes.start_node import StartNode  # 在方法内部导入，避免循环依赖问题
         # 检查确保第一个节点是StartNode
         if not isinstance(nodes[0], StartNode):
             print("Warning: Workflow does not start with a StartNode.")
@@ -34,13 +35,16 @@ class Workflow:
         for i in range(len(nodes) - 1):
             self.next_node_map[nodes[i].node_id] = nodes[i + 1]
 
-    def run(self, initial_context: WorkflowContext) -> WorkflowContext:
+    def run(self, initial_context: WorkflowContext, 
+            node_listener: Optional[Callable[[BaseNode, WorkflowContext], None]] = None) -> WorkflowContext:
         """
         执行工作流，支持条件分支和线性执行。
         
         Args:
             initial_context (WorkflowContext): 工作流启动时的初始数据。
                                               对于StartNode，这里应包含其output_variable_names所需的值。
+            node_listener (Callable, optional): 节点执行监听器，在每个节点执行后调用。
+                                             可用于监控和控制工作流执行。
 
         Returns:
             WorkflowContext: 工作流执行完毕后的最终上下文。
@@ -59,6 +63,15 @@ class Workflow:
             try:
                 # 执行当前节点
                 current_context = current_node.execute(current_context)
+                
+                # 如果提供了节点监听器，则调用它
+                if node_listener:
+                    node_listener(current_node, current_context)
+                
+                # 检查是否需要提前退出子工作流
+                if "_subworkflow_complete" in current_context:
+                    del current_context["_subworkflow_complete"]
+                    break
                 
                 # 确定下一个节点
                 next_node = None

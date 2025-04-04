@@ -1,16 +1,17 @@
-# 导出所有节点类，方便外部导入
+"""
+工作流节点包，包含各种类型的节点实现。
+"""
 from .start_node import StartNode
-from .end_node import EndNode
 from .llm_node import LLMNode
-from .json_extractor_node import JSONExtractorNode
+from .end_node import EndNode
 from .conditional_branch_node import ConditionalBranchNode, ClassDefinition
+from .subworkflow_node import SubWorkflowNode
 
-# 暴露给外部的类
 __all__ = [
     'StartNode',
-    'EndNode',
     'LLMNode',
-    'JSONExtractorNode',
+    'EndNode',
     'ConditionalBranchNode',
-    'ClassDefinition'
+    'ClassDefinition',
+    'SubWorkflowNode',
 ]
