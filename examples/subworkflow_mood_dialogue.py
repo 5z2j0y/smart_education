@@ -18,6 +18,10 @@ AI回应: 哇～真的呢！阳光像蜂蜜一样甜甜的洒在身上，连风�
 import sys
 import os
 import time
+from colorama import Fore, Style, init
+
+# 初始化colorama
+init()
 
 # 将项目根目录添加到Python路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -149,7 +153,7 @@ def run_subworkflow_demo():
         用户原始输入: {user_input}
         AI回复: {ai_response}
         
-        作为用户，你会如何回应这个AI的回复？请给出一个简短的回应。
+        作为用户，你会如何回应这个AI的回复？请给出一个简短的回应。不需要解释或理由。
         """,
         output_variable_name="user_feedback",
         llm_client=deepseek_llm,
@@ -259,7 +263,7 @@ def run_subworkflow_demo():
     
     # 定义测试输入列表
     test_inputs = [
-        "今天天气真好，我很开心！"
+        "今天是清明节假期，天气也很好。"
     ]
     
     # 执行工作流测试
@@ -286,19 +290,19 @@ def run_subworkflow_demo():
             print("\n" + "-"*40)
             print("工作流执行结果:")
             print("-"*40)
-            print(f"用户输入: {user_input}")
-            print(f"心情分类: {final_context['mood_classification']['class_name']}")
-            print(f"AI回应: {final_context['ai_response']}")
-            print(f"模拟用户反馈: {final_context['user_feedback']}")
-            print(f"回应评估: {final_context['evaluation_result']['class_name']}")
-            print(f"评估原因: {final_context['evaluation_reason']}")
-            print(f"执行时间: {execution_time:.2f}秒")
+            print(f"{Fore.GREEN}用户输入:{Style.RESET_ALL} {user_input}")
+            print(f"{Fore.GREEN}心情分类:{Style.RESET_ALL} {final_context['mood_classification']['class_name']}")
+            print(f"{Fore.GREEN}AI回应:{Style.RESET_ALL} {final_context['ai_response']}")
+            print(f"{Fore.GREEN}模拟用户反馈:{Style.RESET_ALL} {final_context['user_feedback']}")
+            print(f"{Fore.GREEN}回应评估:{Style.RESET_ALL} {final_context['evaluation_result']['class_name']}")
+            print(f"{Fore.GREEN}评估原因:{Style.RESET_ALL} {final_context['evaluation_reason']}")
+            print(f"{Fore.GREEN}执行时间:{Style.RESET_ALL} {execution_time:.2f}秒")
         except Exception as e:
-            print(f"\n工作流执行失败: {e}")
+            print(f"\n{Fore.RED}工作流执行失败: {e}{Style.RESET_ALL}")
             import traceback
             print(traceback.format_exc())
     
-    print("\n子工作流演示执行完成！")
+    print(f"\n{Fore.GREEN}子工作流演示执行完成！{Style.RESET_ALL}")
     return final_context  # 返回最后一次执行的上下文
 
 if __name__ == "__main__":

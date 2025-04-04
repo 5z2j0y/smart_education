@@ -34,7 +34,10 @@
 BaseNode (抽象基类)
   ├── StartNode
   ├── LLMNode
-  └── EndNode
+  ├── EndNode
+  ├── ConditionalBranchNode
+  ├── SubWorkflowNode
+  └── IterativeWorkflowNode
 ```
 
 每个节点实现不同的功能，但都遵循相同的接口模式：接收上下文，执行操作，返回更新后的上下文。
@@ -59,44 +62,49 @@ BaseNode (抽象基类)
 5. **实现 Workflow执行器**: 创建工作流执行逻辑
 6. **组装测试工作流**: 使用上述组件创建和测试示例工作流
 7. **集成OpenAI客户端**: (可选) 替换测试用客户端为实际的OpenAI API
+8. **实现 ConditionalBranchNode**: 创建条件分支节点，支持工作流路径动态选择
+9. **实现 SubWorkflowNode**: 创建子工作流节点，支持工作流模块化和复用
+10. **实现 IterativeWorkflowNode**: 创建迭代工作流节点，支持循环和迭代处理
 
 每个步骤的详细说明在单独的文档中提供。
 
-## 5. 预期项目结构
+## 5. 项目结构
+（隐藏了包初始化文件等不必要的文件）
 ```
 smart_education/
 ├── src/                      # 源代码目录
 │   ├── workflow/             # 工作流框架核心
-│   │   ├── __init__.py       # 包初始化文件
 │   │   ├── base.py           # 基础类定义(BaseNode和WorkflowContext)
+│   │   ├── engine.py         # 工作流执行器实现
 │   │   ├── nodes/            # 各类节点实现
-│   │   │   ├── __init__.py   # 节点包初始化文件
 │   │   │   ├── start_node.py # StartNode实现
-│   │   │   ├── llm_node.py   # LLMNode实现
 │   │   │   ├── end_node.py   # EndNode实现
+│   │   │   ├── llm_node.py   # LLMNode实现
+│   │   │   ├── conditional_branch_node.py # 条件分支节点实现
+│   │   │   ├── subworkflow_node.py # 子工作流节点实现
+│   │   │   ├── iterative_workflow_node.py # 迭代工作流节点实现
+│   │   │   ├── ...          # 其他节点实现
 │   │   │   └── custom/       # 自定义节点目录(预留)
-│   │   │       └── __init__.py # 自定义节点包初始化文件
 │   │   ├── engine.py         # Workflow执行器实现
 │   │   └── utils.py          # 工作流通用工具函数
 │   └── llm/                  # LLM集成相关
-│       ├── __init__.py       # 包初始化文件
+│       ├── base_client.py    # 抽象LLM客户端基类
 │       ├── openai_client.py  # OpenAI API客户端
-│       └── base_client.py    # 抽象LLM客户端基类
+│       └── ...               # 其他LLM客户端实现
 ├── tests/                    # 测试目录
-│   ├── __init__.py           # 测试包初始化文件
-│   ├── test_base.py          # 基础节点测试
-│   ├── test_nodes.py         # 各类节点测试
-│   ├── test_workflow.py      # 完整工作流测试
-│   └── test_llm_clients.py   # LLM客户端测试
+│   └── ...                   # 各个步骤的单元测试   
 ├── examples/                 # 示例应用
-│   ├── __init__.py           # 示例包初始化文件
 │   ├── simple_conversation.py # 简单对话工作流示例
+│   ├── subworkflow_mood_dialogue.py # 子工作流示例
+│   ├── iterative_text_improvement.py # 迭代改进工作流示例
+│   ├── ...
 │   └── advanced_workflows/   # 高级工作流示例目录
 │       └── multi_step_reasoning.py # 多步推理工作流示例
-├── docs/                     # 文档目录
-|   ├── 01_core_overview.md   # 项目概述
-│   ├── 02_step1_# ~ 08_step7_# # 各步骤详细说明
-│   └── 09_future_extensions.md # 未来扩展建议
-├── README.md                 # 项目说明文档
-└── requirements.txt          # 依赖项列表
+└── docs/                     # 文档目录
+    ├── developer/              # 开发者文档
+    |   ├── 01_core_overview.md   # 项目概述
+    |   ├── 02_step1_...          # 各步骤详细说明
+    |   └── 99_future_extensions.md # 未来扩展建议
+    └── user/                   # 用户文档
+
 ```
