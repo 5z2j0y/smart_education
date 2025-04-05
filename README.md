@@ -1,30 +1,8 @@
-# 线性多Agent工作流框架
+# 简易多Agent工作流框架
 
 ## 项目简介
 
-这是一个简单、可扩展的基础框架，用于实现线性的多Agent工作流。该框架使用抽象类定义核心组件（节点），允许用户通过继承这些抽象类来创建具体的工作流节点。框架管理节点间的执行顺序和数据（上下文）传递。
-
-## 项目结构
-
-```
-smart_education/
-├── docs/                              # 文档目录
-│   ├── user/                          # 用户指南
-│   ├── developer/                     # 开发者文档
-│   └── ai_reference/                  # AI参考工作流
-├── examples/                          # 示例代码
-│   ├── simple_nodes/                  # 简单节点示例
-│   ├── ai_reference_workflows/        # AI参考工作流示例
-│   └── advanced_workflows/            # 高级工作流示例
-├── src/                               # 源代码
-│   ├── workflow/                      # 工作流核心逻辑
-│   │   ├── base.py                    # 基础节点定义
-│   │   ├── engine.py                  # 工作流引擎
-│   │   └── nodes/                     # 各种节点实现
-│   └── llm/                           # LLM客户端
-├── README.md                          # 项目简介和设计文档
-└── requirements.txt                   # 项目依赖
-```
+这是一个简单、可扩展的基础框架，用于实现允许线性、选择、循环结构的多Agent工作流。该框架使用抽象类定义核心组件（节点），允许用户通过继承这些抽象类来创建具体的工作流节点。框架管理节点间的执行顺序和数据（上下文）传递。
 
 ## 快速上手，创建一个你自己的工作流
 
@@ -87,3 +65,25 @@ graph LR
     ...
 ```
 [查看完整python代码](docs/assets/example/educational_workflow_example.py)
+
+## 项目结构
+
+```
+smart_education/
+├── docs/                              # 文档目录
+│   ├── user/                          # 用户指南
+│   ├── developer/                     # 开发者文档
+│   └── ai_reference/                  # AI参考工作流
+├── examples/                          # 示例代码
+│   ├── simple_nodes/                  # 简单节点示例
+│   ├── ai_reference_workflows/        # AI参考工作流示例
+│   └── advanced_workflows/            # 高级工作流示例
+├── src/                               # 源代码
+│   ├── workflow/                      # 工作流核心逻辑
+│   │   ├── base.py                    # 基础节点定义
+│   │   ├── engine.py                  # 工作流引擎
+│   │   └── nodes/                     # 各种节点实现
+│   └── llm/                           # LLM客户端
+├── README.md                          # 项目简介和设计文档
+└── requirements.txt                   # 项目依赖
+```
