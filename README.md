@@ -4,121 +4,86 @@
 
 这是一个简单、可扩展的基础框架，用于实现线性的多Agent工作流。该框架使用抽象类定义核心组件（节点），允许用户通过继承这些抽象类来创建具体的工作流节点。框架管理节点间的执行顺序和数据（上下文）传递。
 
-## 设计思路
-
-### 核心理念
-
-本框架基于以下设计理念：
-
-1. **组件化与抽象**: 使用抽象类定义标准接口，保证系统各部分松耦合
-2. **单一责任原则**: 每个节点只负责完成特定任务，不关心工作流的整体逻辑
-3. **上下文共享**: 通过统一的上下文对象在节点间传递数据，避免紧耦合
-4. **线性执行流**: 当前版本采用简单线性执行模型，简化工作流管理
-
-### 架构设计
-
-系统架构采用分层设计：
-
-1. **抽象层**: 定义节点接口和基础特性
-2. **实现层**: 提供具体节点类型实现
-3. **执行层**: 工作流引擎负责编排和执行
-4. **集成层**: LLM客户端接口与实现
-
-这种分层架构使系统具有良好的可扩展性和可维护性。
-
-## 核心概念
-
-- **工作流 (Workflow)**: 包含有序节点列表的执行单元，负责按顺序执行节点并管理整个流程的上下文
-- **节点 (Node)**: 工作流中的独立执行步骤，每个节点接收输入（来自工作流上下文），执行特定任务，并将输出写回上下文
-- **工作流上下文 (WorkflowContext)**: 工作流执行期间共享的数据容器，节点从中读取输入变量，并将输出变量写入其中
-- **变量 (Variable)**: 在工作流上下文中存储的数据单元，通过唯一的名称标识
-
-## 主要组件及设计考量
-
-### BaseNode
-- 作为所有节点的抽象基类，定义统一接口
-- 采用模板方法模式，强制子类实现核心逻辑
-- 提供基础身份标识与描述功能
-
-### StartNode
-- 工作流入口点，验证初始上下文是否包含所需变量
-- 设计为显式标记工作流开始，提高可读性和健壮性
-
-### LLMNode
-- 与大语言模型交互的专用节点
-- 采用依赖注入模式接收LLM客户端，提高灵活性和可测试性
-- 使用模板系统处理提示词，支持上下文变量注入
-- 自动分析模板提取所需输入变量，减少手动配置
-
-### ConditionalBranchNode
-- 基于内容分类的条件分支节点
-- 使用LLM对输入内容进行智能分类
-- 支持示例驱动的分类定义，提高准确性
-- 内置默认分类机制，确保工作流鲁棒性
-
-### EndNode
-- 工作流终止节点，验证最终输出变量
-- 提供明确的工作流结束标记
-
-### Workflow
-- 工作流引擎，管理节点执行和上下文传递
-- 维护线性执行序列，处理异常情况
-- 采用简单的共享上下文方式传递数据
-
-### LLM客户端设计
-- 使用抽象接口隔离LLM实现细节
-- 提供真实和模拟实现，便于开发和测试
-- 遵循策略模式，支持运行时切换不同实现
-
-## 设计优势
-
-- **可扩展性**: 易于添加新的节点类型和行为
-- **可测试性**: 各组件可独立测试，支持模拟LLM响应
-- **易用性**: 简单直观的API设计，容易理解和使用
-- **可维护性**: 清晰的责任分离，便于调试和修改
-
-## 未来扩展方向
-
-- **更多流程控制**: 增加循环、并行执行、条件合并等高级流程控制
-- **错误处理机制**: 实现更健壮的错误处理与重试策略
-- **声明式定义**: 支持通过配置文件（YAML/JSON）声明工作流结构
-- **持久化支持**: 工作流状态持久化与恢复能力
-- **异步执行模型**: 改进为异步执行架构，提高并发性能
-- **高级上下文管理**: 支持变量作用域和更精细的上下文控制
-- **类型安全**: 集成类型验证系统确保数据一致性
-
 ## 项目结构
 
 ```
 smart_education/
 ├── docs/                              # 文档目录
 │   ├── user/                          # 用户指南
-│   │   └── user_guide.md              # 用户使用手册
 │   ├── developer/                     # 开发者文档
-│   │   ├── 10_step9_condition_branch.md # 条件分支节点实现文档
-│   │   └── 99_future_extensions.md    # 未来扩展方向
+│   └── ai_reference/                  # AI参考工作流
 ├── examples/                          # 示例代码
-│   └── simple_conversation.py         # 简单对话工作流示例
+│   ├── simple_nodes/                  # 简单节点示例
+│   ├── ai_reference_workflows/        # AI参考工作流示例
+│   └── advanced_workflows/            # 高级工作流示例
 ├── src/                               # 源代码
 │   ├── workflow/                      # 工作流核心逻辑
 │   │   ├── base.py                    # 基础节点定义
 │   │   ├── engine.py                  # 工作流引擎
-│   │   ├── nodes/                     # 节点实现
-│   │   │   ├── start_node.py          # 起始节点
-│   │   │   ├── llm_node.py            # LLM节点
-│   │   │   ├── end_node.py            # 结束节点
-│   │   │   └── conditional_branch_node.py # 条件分支节点
-│   ├── llm/                           # LLM客户端
-│   │   ├── base_client.py             # LLM客户端基类
-│   │   └── deepseek_client.py         # DeepSeek LLM客户端实现
+│   │   └── nodes/                     # 各种节点实现
+│   └── llm/                           # LLM客户端
 ├── README.md                          # 项目简介和设计文档
 └── requirements.txt                   # 项目依赖
 ```
 
-## 贡献指南
+## 快速上手，创建一个你自己的工作流
 
-欢迎提交问题和拉取请求，共同改进这个框架。
+### 工作流程概览
 
-## 许可证
+```mermaid
+graph LR
+    A[PPT Drawing] -->|AI 分析| B[HTML Description];
+    B -->|AI 代码生成| C[Generated Code];
+    style A fill:#e0f7fa,stroke:#263238,stroke-width:2px,color:#263238
+    style B fill:#f1f8e9,stroke:#263238,stroke-width:2px,color:#263238
+    style C fill:#fffde7,stroke:#263238,stroke-width:2px,color:#263238
 
-[MIT](LICENSE)
+```
+### PPT绘图
+
+示例图片：
+
+![alt text](docs/assets/images/提取教学大纲.png)
+
+### 改用html描述
+
+**提示词**：
+阅读并理解图片所描述的工作流，按照html设计文档示例 {[迭代工作流设计示例](examples/ai_reference_workflows/iterative_text_improvement.html)} 或 {[条件分支与子工作流设计](examples/ai_reference_workflows/subworkflow_mood_dialogue.html)} 和 {[ai_reference](docs/ai_reference/ai_reference.md)} 中的设计规范，生成html设计文档。
+
+**示例代码**：
+```html
+<Workflow>
+    <StartNode id="start" name="StartNode">
+        <Output>
+            <!-- 用户输入的问题，如'成吉思汗是谁' -->
+            <Variable name="User_query" />
+            <!-- 学科，如'历史' -->
+            <Variable name="Subject" />
+            <!-- 课程标准，如'普通高中历史课程标准（2017年版2022年修订）' -->
+            <Variable name="Syllabus" />
+        </Output>
+    </StartNode>
+        <!-- 后续省略 -->
+```
+
+[查看完整html设计](docs/assets/example/design.html)
+
+此后，可以对html设计文档进行*修改和迭代*，直到达到满意的效果。
+
+### 生成代码
+提示词：
+根据{html设计文档}，参考现有示例代码 {[迭代工作流设计示例](examples/ai_reference_workflows/iterative_text_improvement.py)} 或 {[条件分支与子工作流设计](examples/ai_reference_workflows/subworkflow_mood_dialogue.py)} 生成python代码。
+
+示例代码：
+
+```python
+# 开始节点
+    start_node = StartNode(
+        node_id="start", 
+        node_name="Start Node", 
+        output_variable_names=["User_query", "Subject", "Syllabus"]
+    )
+    # 后续省略
+    ...
+```
+[查看完整python代码](docs/assets/example/educational_workflow_example.py)

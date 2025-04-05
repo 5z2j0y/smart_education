@@ -1,0 +1,143 @@
+<Workflow>
+    <StartNode id="start" name="开始节点">
+        <Output>
+            <!-- 用户提供的初始文本草稿 -->
+            <Variable name="initial_draft" />
+        </Output>
+    </StartNode>
+
+    <IterativeWorkflowNode id="text_improver" name="迭代文本改进工作流">
+        <Input>
+            <Variable name="initial_draft" as="text_draft" />
+        </Input>
+
+        <Workflow>
+            <StartNode id="draft_start" name="子流程开始节点">
+                <Output>
+                    <Variable name="text_draft" />
+                </Output>
+            </StartNode>
+
+            <LLMNode id="improve_text" name="文本改进节点">
+                <Prompt>
+                    你是一位专业的文本编辑，负责改进以下文本，使其更清晰、更专业、更有吸引力。
+                    请确保保留原始含义，同时提升表达质量。
+                    
+                    待改进文本:
+                    {text_draft}
+                    
+                    请直接给出改进后的文本，不要包含解释或其他内容。
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="improved_text" />
+                </Output>
+                <NextNode id="evaluate_text" />
+            </LLMNode>
+
+            <LLMNode id="evaluate_text" name="质量评估节点">
+                <Prompt>
+                    请评估以下文本的质量，并返回一个包含以下内容的JSON对象:
+                    1. quality_score：0.0到1.0之间的分数，表示文本质量
+                    2. feedback：改进建议
+                    3. strengths：文本的优点
+                    4. weaknesses：文本的不足
+                    
+                    待评估文本:
+                    {improved_text}
+                    
+                    请确保返回有效的JSON格式，例如:
+                    {"quality_score": 0.75, "feedback": "详细的改进建议...", "strengths": "优点...", "weaknesses": "不足..."}
+                </Prompt>
+                <Output>
+                    <Variable name="evaluation_text" />
+                </Output>
+                <NextNode id="extract_evaluation" />
+            </LLMNode>
+
+            <JSONExtractorNode id="extract_evaluation" name="评估结果JSON提取器">
+                <Input>
+                    <Variable name="evaluation_text" />
+                </Input>
+                <Output>
+                    <Variable name="evaluation" />
+                </Output>
+                <DefaultValue>
+                    {"quality_score": 0.5, "feedback": "无法提取有效评估"}
+                </DefaultValue>
+                <RaiseOnError>false</RaiseOnError>
+            </JSONExtractorNode>
+        </Workflow>
+
+        <ConditionFunction>
+            <![CDATA[
+            def quality_check(context, threshold=0.8):
+                """根据文本质量评分决定是否继续迭代"""
+                if "evaluation" not in context:
+                    return True  # 首次迭代，还没有评估结果
+                
+                try:
+                    # 获取评估结果
+                    eval_data = context["evaluation"]
+                    # 如果是字符串则解析，否则直接使用
+                    if isinstance(eval_data, str):
+                        import json
+                        eval_data = json.loads(eval_data)
+                    
+                    quality_score = eval_data.get("quality_score", 0)
+                    
+                    # 如果质量分数低于阈值，继续迭代
+                    return quality_score < threshold
+                except Exception as e:
+                    print(f"评估结果解析错误: {e}")
+                    return False  # 出错时停止迭代
+            ]]>
+        </ConditionFunction>
+
+        <MaxIterations>3</MaxIterations>
+        <IterationMapping>
+            <Variable name="improved_text" as="text_draft" />
+            <Variable name="evaluation" as="evaluation" />
+        </IterationMapping>
+        <ResultCollectionMode>append</ResultCollectionMode>
+        <ResultVariable>improvement_history</ResultVariable>
+        <Output>
+            <Variable name="improved_text" as="final_text" />
+            <Variable name="evaluation" as="final_evaluation" />
+        </Output>
+        <NextNode id="summary_node" />
+    </IterativeWorkflowNode>
+
+    <LLMNode id="summary_node" name="改进总结节点">
+        <Prompt>
+            请总结文本改进的过程，分析改进前后的对比。
+            
+            原始文本:
+            {initial_draft}
+            
+            最终文本:
+            {final_text}
+            
+            最终评估:
+            {final_evaluation}
+            
+            请给出简要的改进分析和总结。
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <Output>
+            <Variable name="improvement_summary" />
+        </Output>
+        <NextNode id="end" />
+    </LLMNode>
+
+    <EndNode id="end" name="结束节点">
+        <Input>
+            <Variable name="initial_draft" />
+            <Variable name="final_text" />
+            <Variable name="final_evaluation" />
+            <Variable name="improvement_summary" />
+            <Variable name="improvement_history" />
+            <Variable name="_iterations_completed" />
+        </Input>
+    </EndNode>
+</Workflow>

@@ -1,0 +1,179 @@
+<Workflow>
+    <StartNode id="start" name="StartNode">
+        <Output>
+            <!-- 用户输入的文本内容 -->
+            <Variable name="user_input" />
+        </Output>
+    </StartNode>
+
+    <SubWorkflowNode id="mood_response_workflow" name="心情分类和响应工作流">
+        <Input>
+            <Variable name="user_input" as="user_query" />
+        </Input>
+
+        <Workflow>
+            <ConditionalBranchNode id="mood_classifier" name="用户心情分类器">
+                <Input>
+                    <Variable name="user_query" />
+                </Input>
+                <Branch name="Positive">
+                    <Description>用户表达积极、高兴的情绪</Description>
+                    <Examples>
+                        <Example>今天天气真好</Example>
+                        <Example>我很开心</Example>
+                        <Example>太棒了</Example>
+                    </Examples>
+                    <NextNode id="positive_response" />
+                </Branch>
+                <Branch name="Negative">
+                    <Description>用户表达消极、不开心的情绪</Description>
+                    <Examples>
+                        <Example>今天真糟糕</Example>
+                        <Example>我很难过</Example>
+                        <Example>太失望了</Example>
+                    </Examples>
+                    <NextNode id="negative_response" />
+                </Branch>
+                <DefaultBranch name="Neutral">
+                    <Description>用户没有表达明显情绪或情绪不确定</Description>
+                    <NextNode id="neutral_response" />
+                </DefaultBranch>
+            </ConditionalBranchNode>
+
+            <LLMNode id="positive_response" name="积极心情回应">
+                <Prompt>
+                    用户看起来心情不错！请以积极愉快的语气回应：{user_query}
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="response" />
+                </Output>
+            </LLMNode>
+
+            <LLMNode id="negative_response" name="消极心情回应">
+                <Prompt>
+                    用户看起来心情不太好。请以温暖安慰的语气回应：{user_query}
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="response" />
+                </Output>
+            </LLMNode>
+
+            <LLMNode id="neutral_response" name="中性心情回应">
+                <Prompt>
+                    请以客观友好的语气回应用户的输入：{user_query}
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="response" />
+                </Output>
+            </LLMNode>
+        </Workflow>
+
+        <Output>
+            <Variable name="response" as="ai_response" />
+            <Variable name="classification_result" as="mood_classification" />
+            <Variable name="classification_result_reason" as="mood_classification_reason" />
+        </Output>
+        <NextNode id="user_feedback" />
+    </SubWorkflowNode>
+
+    <LLMNode id="user_feedback" name="模拟用户反馈">
+        <Prompt>
+            请模拟用户对AI回复的一个简短回应。
+            
+            用户原始输入: {user_input}
+            AI回复: {ai_response}
+            
+            作为用户，你会如何回应这个AI的回复？请给出一个简短的回应。不需要解释或理由。
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <Output>
+            <Variable name="user_feedback" />
+        </Output>
+        <NextNode id="response_evaluation_workflow" />
+    </LLMNode>
+
+    <SubWorkflowNode id="response_evaluation_workflow" name="回应评估工作流">
+        <Input>
+            <Variable name="user_feedback" as="feedback" />
+            <Variable name="ai_response" as="ai_response_copy" />
+        </Input>
+
+        <Workflow>
+            <ConditionalBranchNode id="response_evaluator" name="回应质量评估器">
+                <Input>
+                    <Variable name="feedback" />
+                </Input>
+                <Branch name="Appropriate">
+                    <Description>AI回应得体，与用户情绪匹配，内容恰当</Description>
+                    <Examples>
+                        <Example>回答很贴心</Example>
+                        <Example>理解了我的情绪</Example>
+                        <Example>回复很有帮助</Example>
+                    </Examples>
+                    <NextNode id="appropriate_end" />
+                </Branch>
+                <Branch name="Inappropriate">
+                    <Description>AI回应不得体，与用户情绪不匹配，或内容不恰当</Description>
+                    <Examples>
+                        <Example>没理解我的意思</Example>
+                        <Example>回答跑题了</Example>
+                        <Example>情绪完全不对</Example>
+                    </Examples>
+                    <NextNode id="inappropriate_end" />
+                </Branch>
+                <DefaultBranch name="Neutral">
+                    <Description>无法确定AI回应的质量</Description>
+                    <NextNode id="neutral_evaluation_end" />
+                </DefaultBranch>
+            </ConditionalBranchNode>
+
+            <EndNode id="appropriate_end" name="得体回应结束节点">
+                <Input>
+                    <Variable name="feedback" />
+                    <Variable name="ai_response_copy" />
+                    <Variable name="classification_result" />
+                    <Variable name="classification_result_reason" />
+                </Input>
+            </EndNode>
+
+            <EndNode id="inappropriate_end" name="不得体回应结束节点">
+                <Input>
+                    <Variable name="feedback" />
+                    <Variable name="ai_response_copy" />
+                    <Variable name="classification_result" />
+                    <Variable name="classification_result_reason" />
+                </Input>
+            </EndNode>
+
+            <EndNode id="neutral_evaluation_end" name="中性评估结束节点">
+                <Input>
+                    <Variable name="feedback" />
+                    <Variable name="ai_response_copy" />
+                    <Variable name="classification_result" />
+                    <Variable name="classification_result_reason" />
+                </Input>
+            </EndNode>
+        </Workflow>
+
+        <Output>
+            <Variable name="classification_result" as="evaluation_result" />
+            <Variable name="classification_result_reason" as="evaluation_reason" />
+        </Output>
+        <NextNode id="end" />
+    </SubWorkflowNode>
+
+    <EndNode id="end" name="EndNode">
+        <Input>
+            <Variable name="user_input" />
+            <Variable name="ai_response" />
+            <Variable name="user_feedback" />
+            <Variable name="mood_classification" />
+            <Variable name="mood_classification_reason" />
+            <Variable name="evaluation_result" />
+            <Variable name="evaluation_reason" />
+        </Input>
+    </EndNode>
+</Workflow>

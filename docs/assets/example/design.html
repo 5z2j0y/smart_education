@@ -1,0 +1,74 @@
+<Workflow>
+    <StartNode id="start" name="StartNode">
+        <Output>
+            <!-- 用户输入的问题，如'成吉思汗是谁' -->
+            <Variable name="User_query" />
+            <!-- 学科，如'历史' -->
+            <Variable name="Subject" />
+            <!-- 课程标准，如'普通高中历史课程标准（2017年版2022年修订）' -->
+            <Variable name="Syllabus" />
+        </Output>
+    </StartNode>
+
+    <ConditionalBranchNode id="branch" name="ConditionalBranchNode">
+        <Input>
+            <Variable name="User_query" />
+        </Input>
+        <Branch name="复杂问题">
+            <Description>这是一个复杂学习问题，需要深入分析</Description>
+            <Examples>
+                <Example>请分析成吉思汗的历史贡献及其影响。</Example>
+                <Example>解释工业革命对现代社会的深远影响。</Example>
+            </Examples>
+            <NextNode id="complex_query_optimizer" />
+        </Branch>
+        <Branch name="简单问题">
+            <Description>这是一个日常简单问题，可以直接回答</Description>
+            <Examples>
+                <Example>成吉思汗是谁？</Example>
+                <Example>工业革命是什么时候发生的？</Example>
+            </Examples>
+            <NextNode id="simple_query_handler" />
+        </Branch>
+    </ConditionalBranchNode>
+
+    <LLMNode id="complex_query_optimizer" name="复杂问题优化器">
+        <Prompt>
+            你是一个{Subject}学科助教，请根据课程标准{Syllabus}，分析学生意图，联想相关知识点，优化学生的提问：{User_query}
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <Output>
+            <Variable name="Bettered_query" />
+        </Output>
+        <NextNode id="complex_query_answer" />
+    </LLMNode>
+
+    <LLMNode id="complex_query_answer" name="复杂问题回答">
+        <Prompt>
+            你是一个{Subject}学科教授，请根据详细回答学生提出的、经过助教优化后的提问和课程设计方案：{Bettered_query}，给出详细的回答：{User_query}
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <Output>
+            <Variable name="final_answer" />
+        </Output>
+        <NextNode id="end" />
+    </LLMNode>
+
+    <LLMNode id="simple_query_handler" name="简单问题回答">
+        <Prompt>
+            你是一个{Subject}学科助教，请根据课程标准{Syllabus}，简要回答学生的日常问题：{User_query}
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <Output>
+            <Variable name="final_answer" />
+        </Output>
+        <NextNode id="end" />
+    </LLMNode>
+
+    <EndNode id="end" name="EndNode">
+        <Input>
+            <Variable name="User_query" />
+            <Variable name="final_answer" />
+        </Input>
+    </EndNode>
+</Workflow>
