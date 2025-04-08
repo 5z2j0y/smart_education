@@ -58,7 +58,7 @@ classes = [
     ClassDefinition(
         name="Positive",                             # 分类名称
         description="积极类别",                       # 分类描述
-        next_node_id="positive_handler",             # 匹配时下一节点ID
+        next_node_id="positive_handler",              # 匹配时下一节点ID
         examples=["很好", "喜欢", "满意"]             # 示例，帮助分类
     ),
     ClassDefinition(
@@ -126,6 +126,22 @@ iterative_node = IterativeWorkflowNode(
     result_collection_mode="append",                 # 结果收集模式: replace/append/merge
     result_variable="history",                       # 存储结果的变量名
     next_node_id=None                                # 可选，迭代结束后的下一节点ID
+)
+```
+
+### InputNode - 用户输入交互节点
+
+```python
+from src.workflow.nodes.input_node import InputNode
+
+input_node = InputNode(
+    node_id="user_input",                         # 节点唯一标识符
+    node_name="User Input",                       # 节点名称 
+    prompt_text="请输入您的问题:",                 # 显示给用户的提示文本
+    output_variable_name="user_response",         # 存储用户输入的变量名
+    default_value=None,                           # 可选的默认值
+    validation_func=None,                         # 可选的验证函数
+    next_node_id=None                             # 下一个节点ID
 )
 ```
 
