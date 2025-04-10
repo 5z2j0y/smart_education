@@ -44,11 +44,22 @@ class LLMNode(BaseNode):
 
     def _extract_variables_from_template(self, template: str) -> List[str]:
         """从模板字符串中提取变量名"""
-        # 简单方法：使用正则表达式直接查找{name}格式
-        # 查找形如{variable_name}的模式
-        matches = re.findall(r'\{([a-zA-Z0-9_]+)\}', template)
+        # 修改正则表达式以只匹配真正的变量占位符
+        # 排除JSON示例中的格式
+        matches = []
+        # 使用更精确的正则表达式，避免匹配到JSON示例中的内容
+        pattern = r'(?<!{)\{([a-zA-Z][a-zA-Z0-9_]*(?:\[[a-zA-Z0-9_]+\])?)\}(?!})'
+        matches = re.findall(pattern, template)
+        # 处理嵌套的字典访问（比如 quiz_info_extracted[problem]）
+        cleaned_vars = []
+        for match in matches:
+            if '[' in match:
+                # 提取主变量名（例如从 quiz_info_extracted[problem] 中提取 quiz_info_extracted）
+                cleaned_vars.append(match.split('[')[0])
+            else:
+                cleaned_vars.append(match)
         # 返回唯一变量名列表
-        return list(set(matches))
+        return list(set(cleaned_vars))
 
     def _format_prompt(self, context: WorkflowContext) -> str:
         """使用上下文中的变量值格式化提示词模板"""

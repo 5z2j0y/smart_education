@@ -1,0 +1,157 @@
+<Workflow>
+    <!-- 开始节点 -->
+    <StartNode id="start" name="Start Node">
+        <Output>
+            <Variable name="keypoint" />
+        </Output>
+        <NextNode id="quiz_generator" />
+    </StartNode>
+
+    <!-- 生成测验节点 -->
+    <LLMNode id="quiz_generator" name="Quiz Generator Node">
+        <Prompt>
+            你是一名教育领域的专业出题老师，请根据以下知识点："{keypoint}"，出一道有深度的开放性问题。
+            
+            要求：
+            1. 问题应该能测试学生对该知识点的理解深度
+            2. 答案应包含清晰的得分点和评分标准
+            
+            请按照以下JSON格式输出，不要添加其他说明：
+            {
+                "problem": "问题内容",
+                "answer": "标准答案（包含得分点）"
+            }
+        </Prompt>
+        <Output>
+            <Variable name="quiz_info" />
+        </Output>
+        <NextNode id="json_extractor" />
+    </LLMNode>
+
+    <!-- JSON提取器节点 -->
+    <JSONExtractorNode id="json_extractor" name="JSON Extractor Node">
+        <Input>
+            <Variable name="quiz_info" />
+        </Input>
+        <Schema>
+            {
+                "type": "object",
+                "properties": {
+                    "problem": { "type": "string" },
+                    "answer": { "type": "string" }
+                },
+                "required": ["problem", "answer"]
+            }
+        </Schema>
+        <Output>
+            <Variable name="quiz_info_extracted" />
+        </Output>
+        <DefaultValue>
+            {"problem": "无法生成题目", "answer": "无法生成答案"}
+        </DefaultValue>
+        <RaiseOnError>false</RaiseOnError>
+        <NextNode id="user_input" />
+    </JSONExtractorNode>
+
+    <!-- 用户输入节点 -->
+    <InputNode id="user_input" name="User Input Node">
+        <PromptText>
+            请仔细阅读下面的题目，并提供您的答案：
+            
+            {quiz_info_extracted[problem]}
+        </PromptText>
+        <Output>
+            <Variable name="user_response" />
+        </Output>
+        <NextNode id="score_evaluation" />
+    </InputNode>
+
+    <!-- 评分节点 -->
+    <LLMNode id="score_evaluation" name="Score Evaluation Node">
+        <Prompt>
+            你是一名公正严谨的教育评估专家。请对学生的答案进行评分。
+            
+            题目：{quiz_info_extracted[problem]}
+            
+            标准答案：{quiz_info_extracted[answer]}
+            
+            学生答案：{user_response}
+            
+            评分要求：
+            1. 根据标准答案中的得分点进行客观评价
+            2. 分数范围为0-100整数
+            3. 详细说明得分理由和不足之处
+            
+            请使用以下JSON格式返回评分结果：
+            {
+                "score_details": "详细的得分理由，包括优点和不足",
+                "score": 分数值（0-100的整数）
+            }
+            
+            仅返回JSON格式结果，不要添加其他文字。
+        </Prompt>
+        <Output>
+            <Variable name="mark" />
+        </Output>
+        <NextNode id="json_extractor_score" />
+    </LLMNode>
+
+    <!-- 评分JSON提取器节点 -->
+    <JSONExtractorNode id="json_extractor_score" name="Score JSON Extractor Node">
+        <Input>
+            <Variable name="mark" />
+        </Input>
+        <Schema>
+            {
+                "type": "object",
+                "properties": {
+                    "score_details": { "type": "string" },
+                    "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+                },
+                "required": ["score_details", "score"]
+            }
+        </Schema>
+        <Output>
+            <Variable name="mark_extracted" />
+        </Output>
+        <DefaultValue>
+            {"score_details": "无法评分", "score": 0}
+        </DefaultValue>
+        <RaiseOnError>false</RaiseOnError>
+        <NextNode id="learning_suggestion" />
+    </JSONExtractorNode>
+
+    <!-- 学习建议节点 -->
+    <LLMNode id="learning_suggestion" name="Learning Suggestion Node">
+        <Prompt>
+            你是一个专业的教学助手，请根据学生的答题表现提供个性化学习建议。
+            
+            题目知识点：{keypoint}
+            学生得分：{mark_extracted[score]}
+            评分详情：{mark_extracted[score_details]}
+            
+            请提供以下内容：
+            1. 对学生当前掌握情况的诊断
+            2. 具体指出知识盲点或薄弱环节
+            3. 提供针对性的学习建议和资源推荐
+            4. 设计1-2个后续练习问题帮助巩固
+            
+            回复应当鼓励性、建设性，注重帮助学生取得进步。
+        </Prompt>
+        <Output>
+            <Variable name="suggestion" />
+        </Output>
+        <NextNode id="end" />
+    </LLMNode>
+
+    <!-- 结束节点 -->
+    <EndNode id="end" name="End Node">
+        <Input>
+            <Variable name="keypoint" />
+            <Variable name="quiz_info_extracted" />
+            <Variable name="user_response" />
+            <Variable name="mark_extracted" />
+            <Variable name="suggestion" />
+        </Input>
+    </EndNode>
+</Workflow>

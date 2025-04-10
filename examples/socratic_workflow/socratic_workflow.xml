@@ -1,0 +1,131 @@
+<Workflow>
+    <StartNode id="start" name="开始节点">
+        <Output>
+            <Variable name="user_query" />
+        </Output>
+        <NextNode id="llm_node" />
+    </StartNode>
+
+    <LLMNode id="llm_node" name="教师引导节点">
+        <Prompt>
+            你是一名老师，你收到了学生的疑惑({user_query})，请进行有条理的分析式引导，而不是直接给出确定的否定。
+        </Prompt>
+        <StreamCallback>stream_callback</StreamCallback>
+        <LLMClient>deepseek_client</LLMClient>
+        <Stream>true</Stream>
+        <Output>
+            <Variable name="teacher_suggest" />
+        </Output>
+        <NextNode id="input_node" />
+    </LLMNode>
+
+    <InputNode id="input_node" name="学生回应节点">
+        <PromptText>接收到老师的回答，学生再回应:</PromptText>
+        <Output>
+            <Variable name="new_user_query" />
+        </Output>
+        <NextNode id="condition_branch_node" />
+    </InputNode>
+
+    <ConditionalBranchNode id="condition_branch_node" name="条件分支节点">
+        <Input>
+            <Variable name="new_user_query" />
+        </Input>
+        <Classes>
+            <Class name="Category1" description="根据上下文内容，学生此时的理解仍然错误，需要进一步纠正" next_node_id="question_workflow" />
+            <Class name="Category2" description="根据上下文内容，学生已经理解了，可能还有一些小疑惑或者已经正确" next_node_id="summary_workflow" />
+        </Classes>
+        <DefaultClass name="Default" description="默认分类" next_node_id="default_handler_node" />
+        <Output>
+            <Variable name="classification_reason" />
+        </Output>
+    </ConditionalBranchNode>
+
+    <SubWorkflowNode id="question_workflow" name="质疑重答子工作流">
+        <InputMapping>
+            <Variable name="new_user_query" as="student_answer" />
+        </InputMapping>
+        <Workflow>
+            <StartNode id="question_start" name="质疑工作流开始节点">
+                <Output>
+                    <Variable name="student_answer" />
+                </Output>
+                <NextNode id="question_llm_node" />
+            </StartNode>
+
+            <LLMNode id="question_llm_node" name="质疑节点">
+                <Prompt>
+                    学生的理解存在问题({student_answer})，请直接指出其中的错误之处。
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="question_response" />
+                </Output>
+                <LLMClient>deepseek_client</LLMClient>
+                <Stream>true</Stream>
+                <NextNode id="question_input_node" />
+            </LLMNode>
+
+            <InputNode id="question_input_node" name="学生重新回答节点">
+                <PromptText>收到老师的质疑，请重新回答:</PromptText>
+                <Output>
+                    <Variable name="new_answer" />
+                </Output>
+                <NextNode id="question_end" />
+            </InputNode>
+
+            <EndNode id="question_end" name="质疑工作流结束节点">
+                <Input>
+                    <Variable name="new_answer" />
+                </Input>
+            </EndNode>
+        </Workflow>
+        <OutputMapping>
+            <Variable name="new_answer" as="new_user_query" />
+        </OutputMapping>
+        <NextNode id="condition_branch_node" />
+    </SubWorkflowNode>
+
+    <SubWorkflowNode id="summary_workflow" name="总结鼓励子工作流">
+        <InputMapping>
+            <Variable name="new_user_query" as="student_answer" />
+        </InputMapping>
+        <Workflow>
+            <StartNode id="summary_start" name="总结工作流开始节点">
+                <Output>
+                    <Variable name="student_answer" />
+                </Output>
+                <NextNode id="summary_llm_node" />
+            </StartNode>
+
+            <LLMNode id="summary_llm_node" name="总结与鼓励节点">
+                <Prompt>
+                    根据学生的回答({student_answer})，请总结学生的理解过程，并给予鼓励。
+                </Prompt>
+                <StreamCallback>stream_callback</StreamCallback>
+                <Output>
+                    <Variable name="encouragement_summary" />
+                </Output>
+                <LLMClient>deepseek_client</LLMClient>
+                <Stream>true</Stream>
+                <NextNode id="summary_end" />
+            </LLMNode>
+
+            <EndNode id="summary_end" name="总结工作流结束节点">
+                <Input>
+                    <Variable name="encouragement_summary" />
+                </Input>
+            </EndNode>
+        </Workflow>
+        <OutputMapping>
+            <Variable name="encouragement_summary" as="final_encouragement" />
+        </OutputMapping>
+        <NextNode id="end_node" />
+    </SubWorkflowNode>
+
+    <EndNode id="end_node" name="结束节点">
+        <Input>
+            <Variable name="final_encouragement" />
+        </Input>
+    </EndNode>
+</Workflow>

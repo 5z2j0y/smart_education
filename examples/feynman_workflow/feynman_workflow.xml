@@ -1,0 +1,187 @@
+<Workflow>
+
+    <!-- 开始节点 -->
+    <StartNode id="start" name="StartNode">
+        <Output>
+            <!-- 用户提供的初始回答 -->
+            <Variable name="answer" />
+        </Output>
+        <NextNode id="llm_node" />
+    </StartNode>
+
+    <!-- 用户输入节点 -->
+    注释：仅用于在分类1中的后续处理子工作流中使用。事实上首次调用费曼工作流时，传入的answer变量即为用户的初始回答。
+    <InputNode id="input_node" name="InputNode">
+        <Input>
+            <Variable name="answer" />
+        </Input>
+        <NextNode id="llm_node" />
+    </InputNode>
+
+    <!-- 逻辑评估节点 -->
+    <LLMNode id="llm_node" name="LLMNode">
+        <Prompt>
+            你是费曼工作流中的评估节点，请根据用户的陈述 {answer}，
+            评估其是否合理，或者是否存在偏颇。你首先理解用户的陈述，
+            然后如果有显著错误，明确纠正用户；如果有偏微瑕疵，友善地提醒用户。
+        </Prompt>
+        <Input>
+            <Variable name="answer" />
+        </Input>
+        <Output>
+            <Variable name="evaluate_text" />
+        </Output>
+        <NextNode id="end_node" />
+    </LLMNode>
+
+    <!-- 条件分支节点 -->
+    <ConditionBranchNode id="condition_branch" name="ConditionBranchNode">
+        <Input>
+            <Variable name="evaluate_text" />
+        </Input>
+        <Classes>
+            <!-- 分类1：重大错误 -->
+            <Class name="major_defect">
+                <Description>
+                    经过评估，用户的陈述 {answer} 具有重大错误。需要严格纠正。
+                </Description>
+                <NextNode id="major_defect_handler" />
+            </Class>
+            <!-- 分类2：轻微瑕疵 -->
+            <Class name="minor_defect">
+                <Description>
+                    经过评估，用户的陈述 {answer} 具有轻微瑕疵，或者没有错误。需要友善地提醒。
+                </Description>
+                <NextNode id="minor_defect_handler" />
+            </Class>
+        </Classes>
+        <DefaultClass>
+            <Name>neutral</Name>
+            <Description>未分类的情况，默认处理。</Description>
+            <NextNode id="neutral_handler" />
+        </DefaultClass>
+    </ConditionBranchNode>
+
+    <!-- 分类1后续处理子工作流 -->
+    <SubWorkflowNode id="major_defect_handler" name="重大错误处理子工作流">
+        <Workflow>
+            <!-- 文本改进节点 -->
+            <LLMNode id="improvement_node" name="文本改进节点">
+                <Prompt>
+                    你是费曼工作流中的改进节点，请根据改进的建议 {evaluate_text} 引导用户更新自己的陈述 {answer}。
+                </Prompt>
+                <Input>
+                    <Variable name="evaluate_text" />
+                </Input>
+                <Output>
+                    <Variable name="updated_answer" />
+                </Output>
+                <NextNode id="return_to_input" />
+            </LLMNode>
+
+            <!-- 返回用户输入节点 -->
+            <InputNode id="return_to_input" name="返回用户输入节点">
+                <Prompt>
+                    请根据改进建议更新您的陈述：
+                </Prompt>
+                <Input>
+                    <Variable name="updated_answer" />
+                </Input>
+                <NextNode id="end_subworkflow" />
+            </InputNode>
+
+            <!-- 子工作流结束节点 -->
+            <EndNode id="end_subworkflow" name="子工作流结束节点">
+                <Input>
+                    <Variable name="updated_answer" />
+                </Input>
+            </EndNode>
+        </Workflow>
+        <InputMapping>
+            <Variable name="evaluate_text" as="evaluate_text" />
+        </InputMapping>
+        <OutputMapping>
+            <Variable name="updated_answer" as="updated_answer" />
+        </OutputMapping>
+        <NextNode id="condition_branch" />
+    </SubWorkflowNode>
+
+    <!-- 分类2后续处理子工作流 -->
+    <SubWorkflowNode id="minor_defect_handler" name="轻微瑕疵处理子工作流">
+        <Workflow>
+            <!-- 改进引导节点 -->
+            <LLMNode id="improvement_guidance" name="改进引导节点">
+                <Prompt>
+                    你是费曼工作流中的改进节点，用户的回答 {answer} 已经相对正确答案。
+                    请根据评估节点的反馈 {evaluate_text} 进一步引导用户完善自己的陈述。
+                </Prompt>
+                <Input>
+                    <Variable name="evaluate_text" />
+                </Input>
+                <Output>
+                    <Variable name="updated_answer" />
+                </Output>
+                <NextNode id="user_input" />
+            </LLMNode>
+
+            <!-- 用户输入节点 -->
+            <InputNode id="user_input" name="用户输入节点">
+                <Prompt>
+                    请根据改进建议更新您的陈述：
+                </Prompt>
+                <Input>
+                    <Variable name="updated_answer" />
+                </Input>
+                <NextNode id="summary_node" />
+            </InputNode>
+
+            <!-- 总结节点 -->
+            <LLMNode id="summary_node" name="总结节点">
+                <Prompt>
+                    你是费曼工作流中的总结节点，用户的回答 {updated_answer} 已经很好。
+                    请根据本次工作流的对话，帮助用户总结关键知识点和学到的知识。
+                </Prompt>
+                <Input>
+                    <Variable name="updated_answer" />
+                </Input>
+                <Output>
+                    <Variable name="summary" />
+                </Output>
+                <NextNode id="end_subworkflow" />
+            </LLMNode>
+
+            <!-- 子工作流结束节点 -->
+            <EndNode id="end_subworkflow" name="子工作流结束节点">
+                <Input>
+                    <Variable name="updated_answer" />
+                    <Variable name="summary" />
+                </Input>
+            </EndNode>
+        </Workflow>
+        <InputMapping>
+            <Variable name="evaluate_text" as="evaluate_text" />
+        </InputMapping>
+        <OutputMapping>
+            <Variable name="updated_answer" as="updated_answer" />
+            <Variable name="summary" as="summary" />
+        </OutputMapping>
+        <NextNode id="condition_branch" />
+    </SubWorkflowNode>
+
+        <!-- 默认处理分支 -->
+    <EndNode id="neutral_handler" name="默认处理节点">
+        <Prompt>
+            分类错误：用户的陈述未能被正确分类，请检查工作流逻辑或输入数据。
+        </Prompt>
+    </EndNode>
+
+        <!-- 结束节点 -->
+    <EndNode id="end_node" name="EndNode">
+        <Input>
+            <Variable name="evaluate_text" />
+            <Variable name="updated_answer" />
+            <Variable name="summary" />
+        </Input>
+    </EndNode>
+    
+</Workflow>
